@@ -28,6 +28,16 @@ pub enum Position {
     ReturnedToSubmarine,
 }
 
+impl Position {
+    pub fn as_diving(&self) -> Option<usize> {
+        if let Self::Diving(index) = self {
+            Some(*index)
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Player {
     direction: DiveDirection,
