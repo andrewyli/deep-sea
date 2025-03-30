@@ -311,4 +311,67 @@ mod tests {
 
         Ok(())
     }
+
+    #[gtest]
+    fn test_leapfrog_player() -> DeepSeaResult {
+        let mut deep_sea = DeepSea::new((0..3).map(|_| Tile::Empty).collect(), 2);
+
+        deep_sea.move_player(DiveDirection::Down, 2)?;
+        expect_that!(
+            deep_sea.players[0],
+            pat!(Player {
+                direction: pat!(DiveDirection::Down),
+                tile: pat!(Position::Diving(&1)),
+                held_treasures: empty(),
+            })
+        );
+        expect_true!(deep_sea.occupied(Position::Diving(1)));
+
+        deep_sea.next_player();
+
+        deep_sea.move_player(DiveDirection::Down, 2)?;
+        expect_that!(
+            deep_sea.players[1],
+            pat!(Player {
+                direction: pat!(DiveDirection::Down),
+                tile: pat!(Position::Diving(&2)),
+                held_treasures: empty(),
+            })
+        );
+        expect_true!(deep_sea.occupied(Position::Diving(2)));
+
+        Ok(())
+    }
+
+    #[gtest]
+    fn test_move_player_twice() -> DeepSeaResult {
+        let mut deep_sea = DeepSea::new((0..3).map(|_| Tile::Empty).collect(), 1);
+
+        deep_sea.move_player(DiveDirection::Down, 2)?;
+        expect_that!(
+            deep_sea.players[0],
+            pat!(Player {
+                direction: pat!(DiveDirection::Down),
+                tile: pat!(Position::Diving(&1)),
+                held_treasures: empty(),
+            })
+        );
+        expect_true!(deep_sea.occupied(Position::Diving(1)));
+
+        deep_sea.next_player();
+
+        deep_sea.move_player(DiveDirection::Down, 1)?;
+        expect_that!(
+            deep_sea.players[0],
+            pat!(Player {
+                direction: pat!(DiveDirection::Down),
+                tile: pat!(Position::Diving(&2)),
+                held_treasures: empty(),
+            })
+        );
+        expect_false!(deep_sea.occupied(Position::Diving(1)));
+        expect_true!(deep_sea.occupied(Position::Diving(2)));
+
+        Ok(())
+    }
 }
