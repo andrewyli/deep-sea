@@ -271,6 +271,15 @@ impl Display for DeepSea {
         }
 
         writeln!(f, "Oxygen: {}", self.oxygen)?;
+        for player_idx in 0..self.players.len() {
+            PLAYER_COLORS[player_idx % PLAYER_COLORS.len()].write_fg(f)?;
+            write!(f, "{player_idx}{}: ", color::Fg(color::Reset))?;
+            for treasure in &self.players[player_idx].held_treasures {
+                write!(f, "{treasure}")?;
+            }
+            writeln!(f)?;
+        }
+
         for idx in (0..self.path.len()).rev() {
             let position = Position::Diving(idx);
             if self.occupied(position) {
