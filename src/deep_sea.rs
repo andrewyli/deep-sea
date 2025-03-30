@@ -1,25 +1,29 @@
+use std::fmt::Display;
+
 use bit_set::BitSet;
 use itertools::Itertools;
+use lazy_static::lazy_static;
+use termion::color;
 
 use crate::{
     error::{DeepSeaError, DeepSeaResult},
     solver::TreasureDecision,
+    treasure::Treasure,
 };
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Treasure {
-    One,
-    Two,
-    Three,
-    Four,
-}
-
-impl Treasure {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Tile {
     Empty,
     Treasure(Treasure),
+}
+
+impl Display for Tile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Empty => write!(f, "_"),
+            Self::Treasure(treasure) => write!(f, "{treasure}"),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -66,7 +70,7 @@ impl Position {
 #[derive(Clone, Debug)]
 pub struct Player {
     direction: DiveDirection,
-    tile: Position,
+    position: Position,
     held_treasures: Vec<Treasure>,
 }
 
@@ -74,7 +78,7 @@ impl Player {
     fn new() -> Self {
         Self {
             direction: DiveDirection::Down,
-            tile: Position::WaitingToDive,
+            position: Position::WaitingToDive,
             held_treasures: vec![],
         }
     }
@@ -83,8 +87,8 @@ impl Player {
         self.direction
     }
 
-    pub fn tile(&self) -> Position {
-        self.tile
+    pub fn position(&self) -> Position {
+        self.position
     }
 
     pub fn held_treasures(&self) -> &[Treasure] {
@@ -160,13 +164,31 @@ impl DeepSea {
         }
     }
 
+    pub fn done(&self) -> bool {
+        self.oxygen == 0
+            || self
+                .players
+                .iter()
+                .all(|player| player.position() == Position::ReturnedToSubmarine)
+    }
+
+    pub fn take_oxygen(&mut self) {
+        let player = &self.players[self.player_idx];
+        self.oxygen = self
+            .oxygen
+            .saturating_sub(player.held_treasures.len() as u32);
+    }
+
     pub fn move_player(&mut self, direction: DiveDirection, mut dice_roll: u32) -> DeepSeaResult {
         let player = &self.players[self.player_idx];
         dice_roll = dice_roll.saturating_sub(player.held_treasures().len() as u32);
 
-        let mut cur_player_pos = player.tile();
+        let mut cur_player_pos = player.position();
         let mut player_pos = cur_player_pos;
-        while dice_roll > 0 {
+        while dice_roll > 0
+            && cur_player_pos != Position::ReturnedToSubmarine
+            && cur_player_pos != Position::Diving(self.path.len() - 1)
+        {
             if direction == DiveDirection::Down && self.at_end(player_pos) {
                 break;
             }
@@ -178,17 +200,17 @@ impl DeepSea {
             }
         }
 
-        self.leave_tile(player.tile());
+        self.leave_tile(player.position());
         self.enter_tile(player_pos);
         let player = &mut self.players[self.player_idx];
         player.direction = direction;
-        player.tile = player_pos;
+        player.position = player_pos;
         Ok(())
     }
 
     pub fn take_treasure(&mut self, treasure: TreasureDecision) -> DeepSeaResult {
         let player = &mut self.players[self.player_idx];
-        let tile_idx = player.tile().as_diving().unwrap();
+        let tile_idx = player.position().as_diving().unwrap();
         match treasure {
             TreasureDecision::Take => {
                 if let Tile::Treasure(treasure) = self.path[tile_idx] {
@@ -232,6 +254,50 @@ impl DeepSea {
 
     pub fn next_player(&mut self) {
         self.player_idx = (self.player_idx + 1) % self.players.len();
+    }
+}
+
+impl Display for DeepSea {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        lazy_static! {
+            static ref PLAYER_COLORS: [Box<dyn color::Color + Sync>; 6] = [
+                Box::new(color::Red),
+                Box::new(color::Green),
+                Box::new(color::Blue),
+                Box::new(color::Magenta),
+                Box::new(color::Yellow),
+                Box::new(color::Rgb(4, 3, 1)),
+            ];
+        }
+
+        writeln!(f, "Oxygen: {}", self.oxygen)?;
+        for idx in (0..self.path.len()).rev() {
+            let position = Position::Diving(idx);
+            if self.occupied(position) {
+                let (player_idx, player) = self
+                    .players
+                    .iter()
+                    .find_position(|player| player.position == position)
+                    .unwrap();
+                PLAYER_COLORS[player_idx % PLAYER_COLORS.len()].write_fg(f)?;
+                write!(
+                    f,
+                    "{}{}",
+                    match player.direction {
+                        DiveDirection::Down => '<',
+                        DiveDirection::Up => '>',
+                    },
+                    color::Fg(color::Reset)
+                )?;
+            } else {
+                write!(f, " ")?;
+            }
+        }
+        writeln!(f)?;
+        for tile in self.path.iter().rev() {
+            write!(f, "{tile}")?;
+        }
+        Ok(())
     }
 }
 
@@ -288,7 +354,7 @@ mod tests {
             deep_sea.players[0],
             pat!(Player {
                 direction: pat!(DiveDirection::Down),
-                tile: pat!(Position::WaitingToDive),
+                position: pat!(Position::WaitingToDive),
                 held_treasures: empty(),
             })
         );
@@ -306,7 +372,7 @@ mod tests {
             deep_sea.players[0],
             pat!(Player {
                 direction: pat!(DiveDirection::Down),
-                tile: pat!(Position::Diving(&0)),
+                position: pat!(Position::Diving(&0)),
                 held_treasures: empty(),
             })
         );
@@ -324,7 +390,7 @@ mod tests {
             deep_sea.players[0],
             pat!(Player {
                 direction: pat!(DiveDirection::Down),
-                tile: pat!(Position::Diving(&1)),
+                position: pat!(Position::Diving(&1)),
                 held_treasures: empty(),
             })
         );
@@ -337,7 +403,7 @@ mod tests {
             deep_sea.players[1],
             pat!(Player {
                 direction: pat!(DiveDirection::Down),
-                tile: pat!(Position::Diving(&2)),
+                position: pat!(Position::Diving(&2)),
                 held_treasures: empty(),
             })
         );
@@ -355,7 +421,7 @@ mod tests {
             deep_sea.players[0],
             pat!(Player {
                 direction: pat!(DiveDirection::Down),
-                tile: pat!(Position::Diving(&1)),
+                position: pat!(Position::Diving(&1)),
                 held_treasures: empty(),
             })
         );
@@ -368,7 +434,7 @@ mod tests {
             deep_sea.players[0],
             pat!(Player {
                 direction: pat!(DiveDirection::Down),
-                tile: pat!(Position::Diving(&2)),
+                position: pat!(Position::Diving(&2)),
                 held_treasures: empty(),
             })
         );
@@ -387,7 +453,7 @@ mod tests {
             deep_sea.players[0],
             pat!(Player {
                 direction: pat!(DiveDirection::Down),
-                tile: pat!(Position::Diving(&0)),
+                position: pat!(Position::Diving(&0)),
                 held_treasures: empty(),
             })
         );

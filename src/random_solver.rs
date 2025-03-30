@@ -1,7 +1,7 @@
 use rand::Rng;
 
 use crate::{
-    deep_sea::{DeepSea, DiveDirection, Tile},
+    deep_sea::{DeepSea, DiveDirection, Position, Tile},
     solver::{DeepSeaSolver, TreasureDecision},
 };
 
@@ -15,7 +15,8 @@ impl DeepSeaSolver for RandomSolver {
             DiveDirection::Down
         );
 
-        if rand::rng().random_bool(0.5) {
+        let player = &deep_sea.players()[player_idx];
+        if player.position() == Position::WaitingToDive || rand::rng().random_bool(0.5) {
             DiveDirection::Down
         } else {
             DiveDirection::Up
@@ -24,7 +25,7 @@ impl DeepSeaSolver for RandomSolver {
 
     fn take_treasure(&mut self, deep_sea: &DeepSea, player_idx: usize) -> TreasureDecision {
         let player = &deep_sea.players()[player_idx];
-        let tile = deep_sea.path()[player.tile().as_diving().unwrap()];
+        let tile = deep_sea.path()[player.position().as_diving().unwrap()];
         let mut rng = rand::rng();
 
         match tile {

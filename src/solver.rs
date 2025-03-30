@@ -1,4 +1,7 @@
-use crate::deep_sea::{DeepSea, DiveDirection, Treasure};
+use crate::{
+    deep_sea::{DeepSea, DiveDirection},
+    treasure::Treasure,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum TreasureDecision {
