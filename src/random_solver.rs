@@ -25,16 +25,20 @@ impl DeepSeaSolver for RandomSolver {
     fn take_treasure(&mut self, deep_sea: &DeepSea, player_idx: usize) -> TreasureDecision {
         let player = &deep_sea.players()[player_idx];
         let tile = deep_sea.path()[player.tile().as_diving().unwrap()];
+        let mut rng = rand::rng();
+
         match tile {
             Tile::Empty => {
-                if player.held_treasures().is_empty() || rand::rng().random_bool(0.5) {
+                if player.held_treasures().is_empty() || rng.random_bool(0.5) {
                     TreasureDecision::Ignore
                 } else {
-                    TreasureDecision::Return
+                    TreasureDecision::Return(
+                        player.held_treasures()[rng.random_range(0..player.held_treasures().len())],
+                    )
                 }
             }
             Tile::Treasure(_) => {
-                if rand::rng().random_bool(0.5) {
+                if rng.random_bool(0.5) {
                     TreasureDecision::Take
                 } else {
                     TreasureDecision::Ignore
