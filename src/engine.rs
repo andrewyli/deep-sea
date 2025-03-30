@@ -31,7 +31,7 @@ impl Engine {
         };
 
         let dice_roll = Self::roll_dice();
-        self.state.move_player(direction, dice_roll);
+        self.state.move_player(direction, dice_roll)?;
 
         let player = &self.state.players()[player_idx];
         if let Position::Diving(_) = player.tile() {

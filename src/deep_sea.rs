@@ -45,18 +45,20 @@ impl Position {
         }
     }
 
-    pub fn advance(&self, direction: DiveDirection) -> Position {
+    pub fn advance(&self, direction: DiveDirection) -> DeepSeaResult<Position> {
         match (self, direction) {
-            (Self::Diving(0), DiveDirection::Up) => Self::ReturnedToSubmarine,
-            (Self::Diving(index), DiveDirection::Up) => Self::Diving(index - 1),
-            (Self::Diving(index), DiveDirection::Down) => Self::Diving(index + 1),
-            (Self::WaitingToDive, DiveDirection::Down) => Self::Diving(0),
-            (Self::WaitingToDive, DiveDirection::Up) => {
-                unreachable!("Cannot move up before leaving submarine")
-            }
-            (Self::ReturnedToSubmarine, _) => {
-                unreachable!("Cannot move after returned to submarine")
-            }
+            (Self::Diving(0), DiveDirection::Up) => Ok(Self::ReturnedToSubmarine),
+            (Self::Diving(index), DiveDirection::Up) => Ok(Self::Diving(index - 1)),
+            (Self::Diving(index), DiveDirection::Down) => Ok(Self::Diving(index + 1)),
+            (Self::WaitingToDive, DiveDirection::Down) => Ok(Self::Diving(0)),
+            (Self::WaitingToDive, DiveDirection::Up) => Err(DeepSeaError::Internal(
+                "Cannot move up before leaving submarine".to_owned(),
+            )
+            .into()),
+            (Self::ReturnedToSubmarine, _) => Err(DeepSeaError::Internal(
+                "Cannot move after returned to submarine".to_owned(),
+            )
+            .into()),
         }
     }
 }
@@ -158,7 +160,7 @@ impl DeepSea {
         }
     }
 
-    pub fn move_player(&mut self, direction: DiveDirection, mut dice_roll: u32) {
+    pub fn move_player(&mut self, direction: DiveDirection, mut dice_roll: u32) -> DeepSeaResult {
         let player = &self.players[self.player_idx];
         dice_roll = dice_roll.saturating_sub(player.held_treasures().len() as u32);
 
@@ -169,7 +171,7 @@ impl DeepSea {
                 break;
             }
 
-            cur_player_pos = cur_player_pos.advance(direction);
+            cur_player_pos = cur_player_pos.advance(direction)?;
             if !self.occupied(cur_player_pos) {
                 dice_roll -= 1;
                 player_pos = cur_player_pos;
@@ -181,6 +183,7 @@ impl DeepSea {
         let player = &mut self.players[self.player_idx];
         player.direction = direction;
         player.tile = player_pos;
+        Ok(())
     }
 
     pub fn take_treasure(&mut self, treasure: TreasureDecision) -> DeepSeaResult {
@@ -227,5 +230,85 @@ impl DeepSea {
 
     pub fn next_player(&mut self) {
         self.player_idx = (self.player_idx + 1) % self.players.len();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use googletest::{
+        expect_false, expect_that, expect_true, gtest,
+        prelude::{empty, ok, pat},
+    };
+
+    use crate::{
+        deep_sea::{DeepSea, DiveDirection, Player, Position, Tile},
+        error::DeepSeaResult,
+    };
+
+    #[gtest]
+    fn test_advance_position() {
+        expect_that!(
+            Position::WaitingToDive.advance(DiveDirection::Down),
+            ok(pat!(Position::Diving(&0)))
+        );
+        expect_true!(Position::WaitingToDive.advance(DiveDirection::Up).is_err());
+        expect_true!(
+            Position::ReturnedToSubmarine
+                .advance(DiveDirection::Down)
+                .is_err()
+        );
+        expect_true!(
+            Position::ReturnedToSubmarine
+                .advance(DiveDirection::Up)
+                .is_err()
+        );
+
+        expect_that!(
+            Position::Diving(10).advance(DiveDirection::Down),
+            ok(pat!(Position::Diving(&11)))
+        );
+        expect_that!(
+            Position::Diving(8).advance(DiveDirection::Up),
+            ok(pat!(Position::Diving(&7)))
+        );
+        expect_that!(
+            Position::Diving(0).advance(DiveDirection::Up),
+            ok(pat!(Position::ReturnedToSubmarine))
+        );
+    }
+
+    #[gtest]
+    fn test_init() -> DeepSeaResult {
+        let deep_sea = DeepSea::new(vec![Tile::Empty], 1);
+
+        expect_that!(
+            deep_sea.players[0],
+            pat!(Player {
+                direction: pat!(DiveDirection::Down),
+                tile: pat!(Position::WaitingToDive),
+                held_treasures: empty(),
+            })
+        );
+        expect_false!(deep_sea.occupied(Position::Diving(0)));
+
+        Ok(())
+    }
+
+    #[gtest]
+    fn test_move_player() -> DeepSeaResult {
+        let mut deep_sea = DeepSea::new(vec![Tile::Empty], 1);
+
+        deep_sea.move_player(DiveDirection::Down, 1)?;
+        expect_that!(
+            deep_sea.players[0],
+            pat!(Player {
+                direction: pat!(DiveDirection::Down),
+                tile: pat!(Position::Diving(&0)),
+                held_treasures: empty(),
+            })
+        );
+        expect_true!(deep_sea.occupied(Position::Diving(0)));
+
+        Ok(())
     }
 }
