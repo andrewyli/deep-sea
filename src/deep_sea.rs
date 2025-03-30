@@ -193,6 +193,7 @@ impl DeepSea {
             TreasureDecision::Take => {
                 if let Tile::Treasure(treasure) = self.path[tile_idx] {
                     player.held_treasures.push(treasure);
+                    self.path[tile_idx] = Tile::Empty;
                     Ok(())
                 } else {
                     Err(DeepSeaError::AgentError(format!(
@@ -209,12 +210,13 @@ impl DeepSea {
                         self.path[tile_idx]
                     ))
                     .into())
-                } else if let Some((treasure_idx, _)) = player
+                } else if let Some((treasure_idx, &treasure)) = player
                     .held_treasures
                     .iter()
                     .find_position(|t| **t == treasure)
                 {
                     player.held_treasures.remove(treasure_idx);
+                    self.path[tile_idx] = Tile::Treasure(treasure);
                     Ok(())
                 } else {
                     Err(DeepSeaError::AgentError(format!(
@@ -236,13 +238,14 @@ impl DeepSea {
 #[cfg(test)]
 mod tests {
     use googletest::{
-        expect_false, expect_that, expect_true, gtest,
-        prelude::{empty, ok, pat},
+        expect_eq, expect_false, expect_that, expect_true, gtest,
+        prelude::{empty, ok, pat, unordered_elements_are},
     };
 
     use crate::{
-        deep_sea::{DeepSea, DiveDirection, Player, Position, Tile},
+        deep_sea::{DeepSea, DiveDirection, Player, Position, Tile, Treasure},
         error::DeepSeaResult,
+        solver::TreasureDecision,
     };
 
     #[gtest]
@@ -371,6 +374,44 @@ mod tests {
         );
         expect_false!(deep_sea.occupied(Position::Diving(1)));
         expect_true!(deep_sea.occupied(Position::Diving(2)));
+
+        Ok(())
+    }
+
+    #[gtest]
+    fn test_take_treasure() -> DeepSeaResult {
+        let mut deep_sea = DeepSea::new(vec![Tile::Treasure(Treasure::One)], 1);
+
+        deep_sea.move_player(DiveDirection::Down, 1)?;
+        expect_that!(
+            deep_sea.players[0],
+            pat!(Player {
+                direction: pat!(DiveDirection::Down),
+                tile: pat!(Position::Diving(&0)),
+                held_treasures: empty(),
+            })
+        );
+        deep_sea.take_treasure(TreasureDecision::Ignore)?;
+        expect_eq!(deep_sea.path[0], Tile::Treasure(Treasure::One));
+        expect_that!(deep_sea.players[0].held_treasures, empty());
+
+        deep_sea.take_treasure(TreasureDecision::Take)?;
+        expect_eq!(deep_sea.path[0], Tile::Empty);
+        expect_that!(
+            deep_sea.players[0].held_treasures,
+            unordered_elements_are![&Treasure::One]
+        );
+
+        expect_true!(deep_sea.take_treasure(TreasureDecision::Take).is_err());
+
+        expect_true!(
+            deep_sea
+                .take_treasure(TreasureDecision::Return(Treasure::Four))
+                .is_err()
+        );
+        deep_sea.take_treasure(TreasureDecision::Return(Treasure::One))?;
+        expect_eq!(deep_sea.path[0], Tile::Treasure(Treasure::One));
+        expect_that!(deep_sea.players[0].held_treasures, empty());
 
         Ok(())
     }
