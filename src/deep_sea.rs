@@ -265,8 +265,8 @@ impl Display for DeepSea {
                 Box::new(color::Green),
                 Box::new(color::Blue),
                 Box::new(color::Magenta),
-                Box::new(color::Yellow),
-                Box::new(color::Rgb(4, 3, 1)),
+                Box::new(color::Rgb(0xff, 0xf4, 0x4f)),
+                Box::new(color::Rgb(0xff, 0x99, 0x1c)),
             ];
         }
 

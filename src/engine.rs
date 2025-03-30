@@ -79,17 +79,28 @@ impl Engine {
             .players()
             .iter()
             .map(|player| {
-                player
-                    .held_treasures()
-                    .iter()
-                    .map(|&treasure| value_assigner.assign_value(treasure))
-                    .sum()
+                if player.position() == Position::ReturnedToSubmarine {
+                    player
+                        .held_treasures()
+                        .iter()
+                        .map(|&treasure| value_assigner.assign_value(treasure))
+                        .sum()
+                } else {
+                    0
+                }
             })
             .collect()
     }
 
     pub fn play_game() -> DeepSeaResult {
-        let mut s = Self::make_default_game(vec![Box::new(RandomSolver), Box::new(RandomSolver)]);
+        let mut s = Self::make_default_game(vec![
+            Box::new(RandomSolver),
+            Box::new(RandomSolver),
+            Box::new(RandomSolver),
+            Box::new(RandomSolver),
+            Box::new(RandomSolver),
+            Box::new(RandomSolver),
+        ]);
 
         println!("{}", s.state);
         while !s.state.done() {
