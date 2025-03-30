@@ -4,7 +4,7 @@ use crate::{
     deep_sea::{DeepSea, DiveDirection, Position, Tile},
     error::DeepSeaResult,
     random_solver::RandomSolver,
-    solver::DeepSeaSolver,
+    solver::{DeepSeaSolver, IntoSolvers},
     treasure::{Treasure, TreasureValueAssigner},
 };
 
@@ -92,15 +92,51 @@ impl Engine {
             .collect()
     }
 
+    pub fn play_one_round(mut self) -> DeepSeaResult<Vec<u32>> {
+        while !self.state.done() {
+            self.take_turn()?;
+        }
+
+        Ok(self.score_game())
+    }
+
+    pub fn play_three_rounds(&mut self) -> DeepSeaResult {
+        todo!();
+    }
+
+    pub fn evaluate_solvers<S: IntoSolvers>(iterations: u64) -> DeepSeaResult<Vec<f32>> {
+        let mut ratios = vec![0.; S::num_solvers()];
+        for _ in 0..iterations {
+            let (solvers, idx_map) = S::initialize_shuffled_solvers();
+
+            let result = Self::make_default_game(solvers).play_one_round()?;
+            let max_score = result.iter().cloned().max().unwrap();
+            let highest_players = result.iter().filter(|&&score| score == max_score).count();
+            for idx in result
+                .into_iter()
+                .zip(idx_map)
+                .filter_map(|(score, idx)| (score == max_score).then_some(idx))
+            {
+                ratios[idx] += 1. / (highest_players as f64);
+            }
+        }
+
+        Ok(ratios
+            .into_iter()
+            .map(|ratio| ratio as f32 / iterations as f32)
+            .collect())
+    }
+
     pub fn play_game() -> DeepSeaResult {
-        let mut s = Self::make_default_game(vec![
-            Box::new(RandomSolver),
-            Box::new(RandomSolver),
-            Box::new(RandomSolver),
-            Box::new(RandomSolver),
-            Box::new(RandomSolver),
-            Box::new(RandomSolver),
-        ]);
+        type Solvers = (
+            RandomSolver,
+            RandomSolver,
+            RandomSolver,
+            RandomSolver,
+            RandomSolver,
+            RandomSolver,
+        );
+        let mut s = Self::make_default_game(Solvers::initialize_solvers());
 
         println!("{}", s.state);
         while !s.state.done() {
