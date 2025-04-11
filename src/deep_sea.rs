@@ -16,6 +16,7 @@ pub enum Tile {
     Empty,
     Treasure(Treasure),
 }
+pub const TILE_ENUM_COUNT: usize = 2;
 
 impl Display for Tile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -31,6 +32,7 @@ pub enum DiveDirection {
     Down,
     Up,
 }
+pub const DIVE_DIRECTION_ENUM_COUNT: usize = 2;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Position {
@@ -39,6 +41,7 @@ pub enum Position {
     WaitingToDive,
     ReturnedToSubmarine,
 }
+pub const POSITION_ENUM_COUNT: usize = 3;
 
 impl Position {
     pub fn as_diving(&self) -> Option<usize> {
@@ -133,6 +136,10 @@ impl DeepSea {
 
     pub fn oxygen(&self) -> u32 {
         self.oxygen
+    }
+
+    pub fn occupied_tiles(&self) -> &BitSet {
+        &self.occupied_tiles
     }
 
     fn at_end(&self, position: Position) -> bool {

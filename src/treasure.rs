@@ -9,6 +9,8 @@ pub enum Treasure {
     Three,
     Four,
 }
+pub const TREASURE_ENUM_COUNT: usize = 4;
+pub const MAX_NUM_TREASURES: usize = 10;
 
 impl Treasure {
     fn idx(&self) -> usize {

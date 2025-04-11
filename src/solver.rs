@@ -3,7 +3,7 @@ use rand::seq::SliceRandom;
 
 use crate::{
     deep_sea::{DeepSea, DiveDirection},
-    treasure::Treasure,
+    treasure::{Treasure, TREASURE_ENUM_COUNT},
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -12,6 +12,7 @@ pub enum TreasureDecision {
     Take,
     Return(Treasure),
 }
+pub const TREASURE_DECISION_ENUM_COUNT: usize = 2 + TREASURE_ENUM_COUNT;
 
 pub trait DeepSeaSolver {
     fn choose_direction(&mut self, deep_sea: &DeepSea, player_idx: usize) -> DiveDirection;
