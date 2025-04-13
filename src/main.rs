@@ -1,25 +1,15 @@
-use deep_sea::{
-    engine::Engine,
-    error::DeepSeaResult,
-    random_solver::RandomSolver,
-    andrew::solver::AndrewGreedsAndRunsAwaySolver
-};
+use deep_sea::{engine::Engine, error::DeepSeaResult, random_solver::RandomSolver};
 
 fn run() -> DeepSeaResult {
     // let result = Engine::play_game();
     let result = Engine::evaluate_solvers::<(
-        // AndrewTakesSolver,
-        // AndrewTakesSolver,
-        // AndrewTakesSolver,
-        // AndrewTakesSolver,
-        // AndrewTakesSolver,
         RandomSolver,
         RandomSolver,
         RandomSolver,
         RandomSolver,
         RandomSolver,
-        AndrewGreedsAndRunsAwaySolver,
-    )>(100_000)?;
+        RandomSolver,
+    )>(1_000_000)?;
 
     println!("Result: {result:?}");
 
