@@ -55,11 +55,12 @@ mod tests {
         expect_eq, gtest,
     };
 
-    use crate::{deep_sea::DeepSea, andrew::rl::value_iteration::Feature};
-
+    use crate::{
+        deep_sea::{DeepSea, DiveDirection},
+        andrew::rl::value_iteration::Feature};
+    use crate::andrew::rl::deep_sea_vectorization::DeepSeaAction;
     #[gtest]
     fn test_deep_sea_feature() {
-        struct DeepSeaAction;
         let oxygen_feature: Feature<'_, DeepSea, DeepSeaAction, f32> = Feature::new(
             Box::new(|s: &DeepSea, _a: &DeepSeaAction| s.oxygen() as f32)
         );
@@ -67,7 +68,7 @@ mod tests {
             Box::new(|s: &DeepSea, _a: &DeepSeaAction| s.player_idx() as f32)
         );
         let deep_sea = DeepSea::new(Vec::new(), 1);
-        let deep_sea_action = DeepSeaAction {};
+        let deep_sea_action = DeepSeaAction::DiveDirection(DiveDirection::Down);
         expect_eq!(DeepSea::OXYGEN as f32, oxygen_feature.evaluate(&deep_sea, &deep_sea_action));
         expect_eq!(0.0, distance_feature.evaluate(&deep_sea, &deep_sea_action));
     }
