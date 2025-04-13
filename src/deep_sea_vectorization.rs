@@ -3,7 +3,7 @@ use crate::{
     deep_sea,
     deep_sea::*,
     treasure::{Treasure, TREASURE_ENUM_COUNT, MAX_NUM_TREASURES},
-    andrew::rl::vectorization::*};
+    ml::vectorization::*};
 use bit_set::BitSet;
 use itertools;
 
@@ -239,9 +239,8 @@ mod tests {
         deep_sea::{DeepSea, DiveDirection, Position, Tile},
         treasure::Treasure,
         solver::TreasureDecision,
-        andrew::rl::{
-            vectorization::*,
-            deep_sea_vectorization::{DeepSeaAction, DeepSeaState, DeepSeaStateActionPair, DEEP_SEA_ACTION_ENUM_COUNT, Path, Player}}};
+        ml::vectorization::*,
+        deep_sea_vectorization::{DeepSeaAction, DeepSeaState, DeepSeaStateActionPair, DEEP_SEA_ACTION_ENUM_COUNT, Path, Player}};
     use bit_set::BitSet;
 
     #[test]

@@ -57,8 +57,9 @@ mod tests {
 
     use crate::{
         deep_sea::{DeepSea, DiveDirection},
-        andrew::rl::value_iteration::Feature};
-    use crate::andrew::rl::deep_sea_vectorization::DeepSeaAction;
+        deep_sea_vectorization::DeepSeaAction,
+        ml::value_iteration::Feature};
+
     #[gtest]
     fn test_deep_sea_feature() {
         let oxygen_feature: Feature<'_, DeepSea, DeepSeaAction, f32> = Feature::new(
