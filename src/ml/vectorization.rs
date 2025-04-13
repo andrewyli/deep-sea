@@ -1,5 +1,7 @@
-pub trait DataType: Clone + num::Zero + num::One + From<u16> + From<bool> {}
-impl<T> DataType for T where T: Clone + num::Zero + num::One + From<u16> + From<bool> {}
+use burn::{prelude::TensorData, tensor::Element};
+
+pub trait DataType: Clone + num::Zero + num::One + From<u16> + From<bool> + Element {}
+impl<T> DataType for T where T: Clone + num::Zero + num::One + From<u16> + From<bool> + Element {}
 
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -30,6 +32,11 @@ pub trait Into1DArray {
 }
 
 
+pub trait IntoTensorData {
+    fn into_tensordata<T: DataType>(self) -> TensorData;
+}
+
+
 pub trait Unpackable {
     fn unpack<T: DataType>(&self) -> impl Iterator<Item = T>;
 
@@ -39,7 +46,17 @@ pub trait Unpackable {
 
 impl<U: Unpackable> Into1DArray for U {
     fn into_ndarray<T: DataType>(self) -> ndarray::Array1<T> {
-        ndarray::Array1::<T>::from(self.unpack::<T>().collect::<Vec<T>>())
+        ndarray::Array1::<T>::from_iter(self.unpack::<T>())
+    }
+}
+
+
+impl<U: Unpackable> IntoTensorData for U {
+    fn into_tensordata<T: DataType>(self) -> TensorData {
+        TensorData::new(
+            self.unpack::<T>().collect::<Vec<T>>(),
+            vec![self.unpacked_size()],
+        )
     }
 }
 

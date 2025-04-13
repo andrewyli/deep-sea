@@ -22,12 +22,6 @@ pub struct Player {
 }
 
 
-impl Default for Player {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Player {
     pub fn new() -> Self {
         Self {
@@ -37,6 +31,13 @@ impl Player {
         }
     }
 
+}
+
+
+impl Default for Player {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 
@@ -57,6 +58,26 @@ pub struct DeepSeaState {
     pub oxygen: u16,
 }
 
+
+impl Default for DeepSeaState {
+    fn default() -> Self {
+        let tiles: Vec<Tile> = (0..8)
+            .map(|_| Tile::Treasure(Treasure::One))
+            .chain((0..8).map(|_| Tile::Treasure(Treasure::Two)))
+            .chain((0..8).map(|_| Tile::Treasure(Treasure::Three)))
+            .chain((0..8).map(|_| Tile::Treasure(Treasure::Four)))
+            .collect();
+        let path = Path {
+            tiles,
+            occupied: BitSet::new(),
+        };
+        Self {
+            path,
+            players: vec![Player::new(); 6],
+            oxygen: DeepSea::OXYGEN as u16,
+        }
+    }
+}
 
 pub enum DeepSeaAction {
     TreasureDecision(TreasureDecision),
@@ -219,7 +240,9 @@ impl Unpackable for DeepSeaState {
         let oxygen_dim = 1;
         path_dim + players_dim + oxygen_dim
     }
+
 }
+
 
 
 impl<'a> Unpackable for DeepSeaStateActionPair<'a> {
@@ -367,21 +390,7 @@ mod tests {
 
     #[test]
     fn test_state_action_vectorization() {
-        let tiles: Vec<Tile> = (0..8)
-            .map(|_| Tile::Treasure(Treasure::One))
-            .chain((0..8).map(|_| Tile::Treasure(Treasure::Two)))
-            .chain((0..8).map(|_| Tile::Treasure(Treasure::Three)))
-            .chain((0..8).map(|_| Tile::Treasure(Treasure::Four)))
-            .collect();
-        let path = Path {
-            tiles,
-            occupied: BitSet::new(),
-        };
-        let deep_sea_state = DeepSeaState {
-            path,
-            players: vec![Player::new(); 6],
-            oxygen: DeepSea::OXYGEN as u16,
-        };
+        let deep_sea_state = DeepSeaState::default();
         let state_action = DeepSeaStateActionPair {
             state: &deep_sea_state,
             action: &DeepSeaAction::DiveDirection(DiveDirection::Down),
@@ -391,4 +400,15 @@ mod tests {
         assert_eq!(state_action_f32_ndarray.shape(), state_action_size);
     }
 
+    #[test]
+    fn test_state_action_into_tensor() {
+        let deep_sea_state = DeepSeaState::default();
+        let state_action = DeepSeaStateActionPair {
+            state: &deep_sea_state,
+            action: &DeepSeaAction::DiveDirection(DiveDirection::Down),
+        };
+        let state_action_size = &[state_action.unpacked_size()];
+        let state_action_f32_tensor = state_action.into_tensordata::<f32>();
+        assert_eq!(state_action_f32_tensor.shape, state_action_size);
+    }
 }

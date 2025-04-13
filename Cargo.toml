@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 bit-set = "0.8.0"
+burn = "0.16.1"
 criterion = "0.5.1"
 googletest = "0.14.0"
 itertools = "0.14.0"

@@ -1,31 +1,26 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use deep_sea::{
-    deep_sea::{DeepSea, DiveDirection, Tile},
-    treasure::Treasure,
+    deep_sea::DiveDirection,
     ml::vectorization::*,
-    deep_sea_vectorization::{DeepSeaAction, DeepSeaState, DeepSeaStateActionPair, Path, Player}};
-use bit_set::BitSet;
+    deep_sea_vectorization::{DeepSeaAction, DeepSeaState, DeepSeaStateActionPair}};
 
-
-fn get_default_state() -> DeepSeaState {
-    let tiles: Vec<Tile> = (0..8)
-        .map(|_| Tile::Treasure(Treasure::One))
-        .chain((0..8).map(|_| Tile::Treasure(Treasure::Two)))
-        .chain((0..8).map(|_| Tile::Treasure(Treasure::Three)))
-        .chain((0..8).map(|_| Tile::Treasure(Treasure::Four)))
-        .collect();
-    let path = Path { tiles, occupied: BitSet::new() };
-    DeepSeaState {
-        path,
-        players: vec![Player::new(); 6],
-        oxygen: DeepSea::OXYGEN as u16,
-    }
+fn bench_state_action_into_tensordata(c: &mut Criterion) {
+    let default_state = black_box(DeepSeaState::default());
+    c.bench_function(
+        "starting state into tensordata",
+        |b| b.iter_batched(
+            || black_box(DeepSeaStateActionPair {
+                state: &default_state,
+                action: &DeepSeaAction::DiveDirection(DiveDirection::Down),}),
+            |data| data.into_tensordata::<f32>(),
+            criterion::BatchSize::SmallInput
+        )
+    );
 }
 
-
 fn bench_state_action_vectorization(c: &mut Criterion) {
-    let default_state = get_default_state();
+    let default_state = black_box(DeepSeaState::default());
     c.bench_function(
         "starting state vectorization",
         |b| b.iter_batched(
@@ -38,9 +33,8 @@ fn bench_state_action_vectorization(c: &mut Criterion) {
     );
 }
 
-
 fn bench_state_action_unpacking(c: &mut Criterion) {
-    let default_state = get_default_state();
+    let default_state = black_box(DeepSeaState::default());
     let state_action = black_box(DeepSeaStateActionPair {
         state: &default_state,
         action: &DeepSeaAction::DiveDirection(DiveDirection::Down),
@@ -52,8 +46,11 @@ fn bench_state_action_unpacking(c: &mut Criterion) {
 }
 
 
+
+
 criterion_group!(
     benches,
+    bench_state_action_into_tensordata,
     bench_state_action_unpacking,
     bench_state_action_vectorization
 );
