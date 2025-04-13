@@ -97,18 +97,6 @@ impl Player {
     pub fn held_treasures(&self) -> &[Treasure] {
         &self.held_treasures
     }
-
-    pub fn direction_ref(&self) -> &DiveDirection {
-        &self.direction
-    }
-
-    pub fn position_ref(&self) -> &Position {
-        &self.position
-    }
-
-    pub fn held_treasures_vec_ref(&self) -> &Vec<Treasure> {
-        &self.held_treasures
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -138,15 +126,7 @@ impl DeepSea {
         &self.path
     }
 
-    pub fn path_vec_ref(&self) -> &Vec<Tile> {
-        &self.path
-    }
-
     pub fn players(&self) -> &[Player] {
-        &self.players
-    }
-
-    pub fn players_ref(&self) -> &Vec<Player> {
         &self.players
     }
 

@@ -9,16 +9,16 @@ use itertools;
 
 
 pub struct Path {
-    tiles: Vec<Tile>,
-    occupied: BitSet,
+    pub tiles: Vec<Tile>,
+    pub occupied: BitSet,
 }
 
 
 #[derive(Clone, Debug)]
 pub struct Player {
-    direction: DiveDirection,
-    position: Position,
-    held_treasures: Vec<Treasure>,
+    pub direction: DiveDirection,
+    pub position: Position,
+    pub held_treasures: Vec<Treasure>,
 }
 
 
@@ -52,9 +52,9 @@ impl From<deep_sea::Player> for Player {
 
 
 pub struct DeepSeaState {
-    path: Path,
-    players: Vec<Player>,
-    oxygen: u16,
+    pub path: Path,
+    pub players: Vec<Player>,
+    pub oxygen: u16,
 }
 
 
@@ -79,8 +79,8 @@ impl From<DiveDirection> for DeepSeaAction {
 
 
 pub struct DeepSeaStateActionPair<'a> {
-    state: &'a DeepSeaState,
-    action: &'a DeepSeaAction,
+    pub state: &'a DeepSeaState,
+    pub action: &'a DeepSeaAction,
 }
 
 
@@ -390,4 +390,5 @@ mod tests {
         let state_action_f32_ndarray: ndarray::Array1<f32> = state_action.into_ndarray();
         assert_eq!(state_action_f32_ndarray.shape(), state_action_size);
     }
+
 }
