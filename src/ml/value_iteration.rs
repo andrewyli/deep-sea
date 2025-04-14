@@ -12,7 +12,7 @@ pub struct Feature<'a, S, A, T> {
     value_fn: Box<FeatureFn<'a, S, A, T>>,
 }
 
-impl<'a, S, A, T, U> ApproximateQState<'a, S, A, T, U>
+impl<S, A, T, U> ApproximateQState<'_, S, A, T, U>
 where
     T: Num + Clone + Sum + Mul<U, Output = T>,
     U: Clone + Copy + From<f32>,
@@ -56,10 +56,10 @@ mod tests {
 
     use crate::{
         deep_sea::{DeepSea, DiveDirection},
-        deep_sea_vectorization::{DeepSeaAction, DeepSeaState, DeepSeaStateActionPair},
+        deep_sea_vectorization::{DeepSeaAction, DeepSeaState},
         ml::{
-            value_iteration::Feature,
-            vectorization::{IntoTensorData, Unpackable},
+            value_iteration::{ApproximateQState, Feature},
+            vectorization::IntoTensorData,
         },
         solver::TreasureDecision,
     };
@@ -109,5 +109,39 @@ mod tests {
                 .unwrap()[0] as usize,
             8 * (1 + 2 + 3 + 4)
         );
+    }
+
+    #[gtest]
+    fn q_state_evaluate() {
+        let state_action_feature =
+            Feature::new(Box::new(|state: &DeepSeaState, _action: &DeepSeaAction| {
+                state.path.clone().into_tensordata::<f32>()
+            }));
+        let sum_feature = Feature::new(Box::new(|state: &DeepSeaState, action: &DeepSeaAction| {
+            Tensor::<NdArray, 1>::from_data(
+                state_action_feature.evaluate(state, action),
+                &NdArrayDevice::Cpu,
+            )
+            .sum()
+            .to_data()
+            .to_vec::<f32>()
+            .unwrap()[0]
+        }));
+        let prod_feature =
+            Feature::new(Box::new(|state: &DeepSeaState, action: &DeepSeaAction| {
+                dbg!(Tensor::<NdArray, 1>::from_data(
+                    state_action_feature.evaluate(state, action),
+                    &NdArrayDevice::Cpu,
+                ))
+                .prod()
+                .to_data()
+                .to_vec::<f32>()
+                .unwrap()[0]
+            }));
+        let state = DeepSeaState::default();
+        let action = DeepSeaAction::TreasureDecision(TreasureDecision::Take);
+        let q_state: ApproximateQState<'_, DeepSeaState, DeepSeaAction, f32, f32> =
+            ApproximateQState::from_features(vec![sum_feature, prod_feature]);
+        expect_eq!(q_state.evaluate(&state, &action), 0.5 * 8.0 * 10.0)
     }
 }

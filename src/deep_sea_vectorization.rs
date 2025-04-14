@@ -230,7 +230,7 @@ impl Unpackable for DeepSeaState {
     }
 }
 
-impl<'a> Unpackable for DeepSeaStateActionPair<'a> {
+impl Unpackable for DeepSeaStateActionPair<'_> {
     fn unpack<T: DataType>(&self) -> impl Iterator<Item = T> {
         self.state.unpack::<T>().chain(self.action.unpack::<T>())
     }
