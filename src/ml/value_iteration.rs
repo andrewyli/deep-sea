@@ -57,8 +57,12 @@ mod tests {
 
     use crate::{
         deep_sea::{DeepSea, DiveDirection},
-        deep_sea_vectorization::DeepSeaAction,
-        ml::value_iteration::Feature};
+        deep_sea_vectorization::{DeepSeaAction, DeepSeaState, DeepSeaStateActionPair},
+        ml::{value_iteration::Feature, vectorization::{IntoTensorData, Unpackable}},
+        solver::TreasureDecision};
+
+    use burn::tensor::Tensor;
+    use burn_ndarray::{NdArray, NdArrayDevice};
 
     #[gtest]
     fn test_deep_sea_feature() {
@@ -72,5 +76,32 @@ mod tests {
         let deep_sea_action = DeepSeaAction::DiveDirection(DiveDirection::Down);
         expect_eq!(DeepSea::OXYGEN as f32, oxygen_feature.evaluate(&deep_sea, &deep_sea_action));
         expect_eq!(0.0, distance_feature.evaluate(&deep_sea, &deep_sea_action));
+    }
+
+    #[gtest]
+    fn test_sum_of_tiles_feature() {
+        let state_action_feature = Feature::new(
+            Box::new(
+                |state: &DeepSeaState, _action: &DeepSeaAction| state.path.into_tensordata::<f32>())
+        );
+        // Not a realistic feature.
+        let sum_feature = Feature::new(
+            Box::new(
+                |state: &DeepSeaState, action: &DeepSeaAction|
+                Tensor::<NdArray, 1>::from_data(
+                    state_action_feature.evaluate(state, action),
+                    &NdArrayDevice::Cpu).sum()
+            )
+        );
+        let state = DeepSeaState::default();
+        let action = DeepSeaAction::TreasureDecision(TreasureDecision::Take);
+        expect_eq!(
+            sum_feature
+                .evaluate(&state, &action)
+                .to_data()
+                .to_vec::<u16>()
+                .unwrap()[0] as usize,
+            8 * (1 + 2 + 3 + 4) + state.players.len() * (1 + action.unpack::<u16>().next().unwrap() as usize) + DeepSea::OXYGEN as usize
+        );
     }
 }

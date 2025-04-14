@@ -1254,6 +1254,7 @@ version = "0.1.0"
 dependencies = [
  "bit-set",
  "burn",
+ "burn-ndarray",
  "criterion",
  "googletest",
  "itertools 0.14.0",
