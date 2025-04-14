@@ -12,6 +12,7 @@ use strum::EnumCount;
 pub const TREASURE_DECISION_COUNT: usize = 2 + Treasure::COUNT;
 pub const POSITION_COUNT: usize = Position::COUNT;
 
+#[derive(Clone, Debug)]
 pub struct Path {
     pub tiles: Vec<Tile>,
     pub occupied: BitSet,
