@@ -1,12 +1,15 @@
 use crate::{
-    solver::{TreasureDecision, TREASURE_DECISION_ENUM_COUNT},
+    solver::TreasureDecision,
     deep_sea,
     deep_sea::*,
-    treasure::{Treasure, TREASURE_ENUM_COUNT, MAX_NUM_TREASURES},
+    treasure::{Treasure, MAX_NUM_TREASURES},
     ml::vectorization::*};
 use bit_set::BitSet;
-use itertools;
+use itertools::{self, Itertools};
+use strum::EnumCount;
 
+pub const TREASURE_DECISION_COUNT: usize = 2 + Treasure::COUNT;
+pub const POSITION_COUNT: usize = Position::COUNT;
 
 pub struct Path {
     pub tiles: Vec<Tile>,
@@ -105,13 +108,8 @@ pub struct DeepSeaStateActionPair<'a> {
 }
 
 
-pub const DEEP_SEA_ACTION_ENUM_COUNT: usize =
-    TREASURE_DECISION_ENUM_COUNT + DIVE_DIRECTION_ENUM_COUNT;
-
-
-pub const PLAYER_DIM: usize = DIVE_DIRECTION_ENUM_COUNT
-    + POSITION_ENUM_COUNT
-    + MAX_NUM_TREASURES * TREASURE_ENUM_COUNT;
+pub const DEEP_SEA_ACTION_COUNT: usize =
+    TREASURE_DECISION_COUNT + DiveDirection::COUNT;
 
 
 impl Unpackable for Treasure {
@@ -149,7 +147,7 @@ impl Unpackable for Position {
     }
 
     fn unpacked_size(&self) -> usize {
-        POSITION_ENUM_COUNT
+        POSITION_COUNT
     }
 }
 
@@ -213,7 +211,7 @@ impl Unpackable for DeepSeaAction {
                 TreasureDecision::Take => 1,
                 TreasureDecision::Return(t) => 2 + *t as usize,
             },
-            DeepSeaAction::DiveDirection(dd) => TREASURE_DECISION_ENUM_COUNT + *dd as usize,
+            DeepSeaAction::DiveDirection(dd) => TREASURE_DECISION_COUNT + *dd as usize,
         };
         std::iter::repeat_n(T::zero(), hot_idx)
             .chain(std::iter::once(T::from(1u16)))
@@ -222,14 +220,14 @@ impl Unpackable for DeepSeaAction {
     }
 
     fn unpacked_size(&self) -> usize {
-        DEEP_SEA_ACTION_ENUM_COUNT
+        DEEP_SEA_ACTION_COUNT
     }
 }
 
 
 impl Unpackable for DeepSeaState {
     fn unpack<T: DataType>(&self) -> impl Iterator<Item = T> {
-        self.path.unpack::<T>().collect::<Vec<T>>().into_iter()
+        self.path.unpack::<T>().collect_vec().into_iter()
                                .chain(self.players.unpack())
                                .chain([T::from(self.oxygen)])
     }
@@ -263,7 +261,7 @@ mod tests {
         treasure::Treasure,
         solver::TreasureDecision,
         ml::vectorization::*,
-        deep_sea_vectorization::{DeepSeaAction, DeepSeaState, DeepSeaStateActionPair, DEEP_SEA_ACTION_ENUM_COUNT, Path, Player}};
+        deep_sea_vectorization::{DeepSeaAction, DeepSeaState, DeepSeaStateActionPair, DEEP_SEA_ACTION_COUNT, Path, Player}};
     use bit_set::BitSet;
 
     #[test]
@@ -380,7 +378,7 @@ mod tests {
         let deep_sea_action_vec = deep_sea_action.into_ndarray::<f64>();
         assert_eq!(deep_sea_action_vec.shape(), deep_sea_action_size);
         // 0 -> Take, 1 -> Ignore, 2 -> Return(One), 3 -> Return(Two).
-        for i in 0..DEEP_SEA_ACTION_ENUM_COUNT {
+        for i in 0..DEEP_SEA_ACTION_COUNT {
             match i {
                 3 => assert_eq!(deep_sea_action_vec[[i]], 1.0),
                 _ => assert_eq!(deep_sea_action_vec[[i]], 0.0),

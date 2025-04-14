@@ -1,15 +1,15 @@
 use std::fmt::Display;
+use strum_macros::EnumCount;
 
 use rand::Rng;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, EnumCount, PartialEq, Eq, Hash)]
 pub enum Treasure {
     One,
     Two,
     Three,
     Four,
 }
-pub const TREASURE_ENUM_COUNT: usize = 4;
 pub const MAX_NUM_TREASURES: usize = 10;
 
 impl Treasure {

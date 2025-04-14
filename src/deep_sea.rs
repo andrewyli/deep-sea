@@ -4,6 +4,7 @@ use bit_set::BitSet;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use termion::color;
+use strum_macros::EnumCount;
 
 use crate::{
     error::{DeepSeaError, DeepSeaResult},
@@ -11,12 +12,11 @@ use crate::{
     treasure::Treasure,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, EnumCount, PartialEq, Eq, Hash)]
 pub enum Tile {
     Empty,
     Treasure(Treasure),
 }
-pub const TILE_ENUM_COUNT: usize = 2;
 
 impl Display for Tile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -27,21 +27,19 @@ impl Display for Tile {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, EnumCount, PartialEq, Eq, Hash)]
 pub enum DiveDirection {
     Down,
     Up,
 }
-pub const DIVE_DIRECTION_ENUM_COUNT: usize = 2;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, EnumCount, PartialEq, Eq, Hash)]
 pub enum Position {
     /// Index into `DeepSea::path`.
     Diving(usize),
     WaitingToDive,
     ReturnedToSubmarine,
 }
-pub const POSITION_ENUM_COUNT: usize = 3;
 
 impl Position {
     pub fn as_diving(&self) -> Option<usize> {

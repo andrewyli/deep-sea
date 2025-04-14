@@ -1,18 +1,18 @@
 use itertools::Itertools;
 use rand::seq::SliceRandom;
+use strum_macros::EnumCount;
 
 use crate::{
     deep_sea::{DeepSea, DiveDirection},
-    treasure::{Treasure, TREASURE_ENUM_COUNT},
+    treasure::Treasure,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, EnumCount, PartialEq, Eq, Hash)]
 pub enum TreasureDecision {
     Ignore,
     Take,
     Return(Treasure),
 }
-pub const TREASURE_DECISION_ENUM_COUNT: usize = 2 + TREASURE_ENUM_COUNT;
 
 pub trait DeepSeaSolver {
     fn choose_direction(&mut self, deep_sea: &DeepSea, player_idx: usize) -> DiveDirection;
