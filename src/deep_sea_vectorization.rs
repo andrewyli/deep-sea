@@ -230,7 +230,7 @@ impl Unpackable for DeepSeaAction {
 impl Unpackable for DeepSeaState {
     fn unpack<T: DataType>(&self) -> impl Iterator<Item = T> {
         self.path.unpack::<T>().collect::<Vec<T>>().into_iter()
-                               .chain(self.players.unpack::<T>())
+                               .chain(self.players.unpack())
                                .chain([T::from(self.oxygen)])
     }
 
