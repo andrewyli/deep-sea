@@ -1,9 +1,10 @@
 use crate::{
-    solver::TreasureDecision,
     deep_sea,
     deep_sea::*,
-    treasure::{Treasure, MAX_NUM_TREASURES},
-    ml::vectorization::*};
+    ml::vectorization::*,
+    solver::TreasureDecision,
+    treasure::{MAX_NUM_TREASURES, Treasure},
+};
 use bit_set::BitSet;
 use itertools::{self, Itertools};
 use strum::EnumCount;
@@ -16,14 +17,12 @@ pub struct Path {
     pub occupied: BitSet,
 }
 
-
 #[derive(Clone, Debug)]
 pub struct Player {
     pub direction: DiveDirection,
     pub position: Position,
     pub held_treasures: Vec<Treasure>,
 }
-
 
 impl Player {
     pub fn new() -> Self {
@@ -33,16 +32,13 @@ impl Player {
             held_treasures: vec![],
         }
     }
-
 }
-
 
 impl Default for Player {
     fn default() -> Self {
         Self::new()
     }
 }
-
 
 impl From<deep_sea::Player> for Player {
     fn from(ds_player: deep_sea::Player) -> Self {
@@ -54,13 +50,11 @@ impl From<deep_sea::Player> for Player {
     }
 }
 
-
 pub struct DeepSeaState {
     pub path: Path,
     pub players: Vec<Player>,
     pub oxygen: u16,
 }
-
 
 impl Default for DeepSeaState {
     fn default() -> Self {
@@ -87,13 +81,11 @@ pub enum DeepSeaAction {
     DiveDirection(DiveDirection),
 }
 
-
 impl From<TreasureDecision> for DeepSeaAction {
     fn from(td: TreasureDecision) -> Self {
         Self::TreasureDecision(td)
     }
 }
-
 
 impl From<DiveDirection> for DeepSeaAction {
     fn from(dd: DiveDirection) -> Self {
@@ -101,16 +93,12 @@ impl From<DiveDirection> for DeepSeaAction {
     }
 }
 
-
 pub struct DeepSeaStateActionPair<'a> {
     pub state: &'a DeepSeaState,
     pub action: &'a DeepSeaAction,
 }
 
-
-pub const DEEP_SEA_ACTION_COUNT: usize =
-    TREASURE_DECISION_COUNT + DiveDirection::COUNT;
-
+pub const DEEP_SEA_ACTION_COUNT: usize = TREASURE_DECISION_COUNT + DiveDirection::COUNT;
 
 impl Unpackable for Treasure {
     fn unpack<T: DataType>(&self) -> impl Iterator<Item = T> {
@@ -123,7 +111,6 @@ impl Unpackable for Treasure {
     }
 }
 
-
 impl Unpackable for DiveDirection {
     fn unpack<T: DataType>(&self) -> impl Iterator<Item = T> {
         [T::from(*self as u16)].into_iter()
@@ -134,23 +121,24 @@ impl Unpackable for DiveDirection {
     }
 }
 
-
 impl Unpackable for Position {
     fn unpack<T: DataType>(&self) -> impl Iterator<Item = T> {
         let position_val: u16 = match self {
             Position::Diving(depth) => *depth as u16,
             _ => 0,
         };
-        [T::from(position_val),
-         T::from(*self == Position::WaitingToDive),
-         T::from(*self == Position::ReturnedToSubmarine)].into_iter()
+        [
+            T::from(position_val),
+            T::from(*self == Position::WaitingToDive),
+            T::from(*self == Position::ReturnedToSubmarine),
+        ]
+        .into_iter()
     }
 
     fn unpacked_size(&self) -> usize {
         POSITION_COUNT
     }
 }
-
 
 impl Unpackable for Tile {
     fn unpack<T: DataType>(&self) -> impl Iterator<Item = T> {
@@ -165,8 +153,6 @@ impl Unpackable for Tile {
     }
 }
 
-
-
 impl Unpackable for Path {
     fn unpack<T: DataType>(&self) -> impl Iterator<Item = T> {
         let path_iter = self.tiles.unpack::<T>();
@@ -179,7 +165,6 @@ impl Unpackable for Path {
     }
 }
 
-
 impl Unpackable for Player {
     fn unpack<T: DataType>(&self) -> impl Iterator<Item = T> {
         let direction = self.direction.unpack::<T>();
@@ -188,19 +173,19 @@ impl Unpackable for Player {
         let filled_size = self.direction.unpacked_size()
             + self.position.unpacked_size()
             + self.held_treasures.unpacked_size();
-        direction.chain(position)
-                 .chain(held_treasures)
-                 .chain(std::iter::repeat_n(
-                     T::zero(),
-                     self.unpacked_size().saturating_sub(filled_size)))
+        direction
+            .chain(position)
+            .chain(held_treasures)
+            .chain(std::iter::repeat_n(
+                T::zero(),
+                self.unpacked_size().saturating_sub(filled_size),
+            ))
     }
 
     fn unpacked_size(&self) -> usize {
         self.direction.unpacked_size() + self.position.unpacked_size() + MAX_NUM_TREASURES
     }
 }
-
-
 
 impl Unpackable for DeepSeaAction {
     fn unpack<T: DataType>(&self) -> impl Iterator<Item = T> {
@@ -216,7 +201,9 @@ impl Unpackable for DeepSeaAction {
         std::iter::repeat_n(T::zero(), hot_idx)
             .chain(std::iter::once(T::from(1u16)))
             .chain(std::iter::repeat_n(
-                T::zero(), self.unpacked_size() - hot_idx - 1))
+                T::zero(),
+                self.unpacked_size() - hot_idx - 1,
+            ))
     }
 
     fn unpacked_size(&self) -> usize {
@@ -224,12 +211,14 @@ impl Unpackable for DeepSeaAction {
     }
 }
 
-
 impl Unpackable for DeepSeaState {
     fn unpack<T: DataType>(&self) -> impl Iterator<Item = T> {
-        self.path.unpack::<T>().collect_vec().into_iter()
-                               .chain(self.players.unpack())
-                               .chain([T::from(self.oxygen)])
+        self.path
+            .unpack::<T>()
+            .collect_vec()
+            .into_iter()
+            .chain(self.players.unpack())
+            .chain([T::from(self.oxygen)])
     }
 
     fn unpacked_size(&self) -> usize {
@@ -238,10 +227,7 @@ impl Unpackable for DeepSeaState {
         let oxygen_dim = 1;
         path_dim + players_dim + oxygen_dim
     }
-
 }
-
-
 
 impl<'a> Unpackable for DeepSeaStateActionPair<'a> {
     fn unpack<T: DataType>(&self) -> impl Iterator<Item = T> {
@@ -253,15 +239,18 @@ impl<'a> Unpackable for DeepSeaStateActionPair<'a> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::{
         deep_sea::{DeepSea, DiveDirection, Position, Tile},
-        treasure::Treasure,
-        solver::TreasureDecision,
+        deep_sea_vectorization::{
+            DEEP_SEA_ACTION_COUNT, DeepSeaAction, DeepSeaState, DeepSeaStateActionPair, Path,
+            Player,
+        },
         ml::vectorization::*,
-        deep_sea_vectorization::{DeepSeaAction, DeepSeaState, DeepSeaStateActionPair, DEEP_SEA_ACTION_COUNT, Path, Player}};
+        solver::TreasureDecision,
+        treasure::Treasure,
+    };
     use bit_set::BitSet;
 
     #[test]
@@ -296,8 +285,14 @@ mod tests {
         let path_f64_ndarray: ndarray::Array1<f64> = path.into_ndarray();
         assert_eq!(path_f64_ndarray.shape(), path_size);
         for (i, tile) in tiles.iter().enumerate() {
-            assert_eq!(path_f64_ndarray[[2*i]], tile.unpack::<f64>().next().unwrap());
-            assert_eq!(path_f64_ndarray[[2*i + 1]], f64::from(occupied_tiles.contains(i)));
+            assert_eq!(
+                path_f64_ndarray[[2 * i]],
+                tile.unpack::<f64>().next().unwrap()
+            );
+            assert_eq!(
+                path_f64_ndarray[[2 * i + 1]],
+                f64::from(occupied_tiles.contains(i))
+            );
         }
     }
 
@@ -307,7 +302,10 @@ mod tests {
         let direction_size = &[direction.unpacked_size()];
         let direction_f32_ndarray: ndarray::Array1<f32> = direction.into_ndarray();
         assert_eq!(direction_f32_ndarray.shape(), direction_size);
-        assert_eq!(direction_f32_ndarray[[0]], f32::from(DiveDirection::Up as u8))
+        assert_eq!(
+            direction_f32_ndarray[[0]],
+            f32::from(DiveDirection::Up as u8)
+        )
     }
 
     #[test]

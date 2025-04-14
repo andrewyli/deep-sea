@@ -3,8 +3,8 @@ use std::fmt::Display;
 use bit_set::BitSet;
 use itertools::Itertools;
 use lazy_static::lazy_static;
-use termion::color;
 use strum_macros::EnumCount;
+use termion::color;
 
 use crate::{
     error::{DeepSeaError, DeepSeaResult},
